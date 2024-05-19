@@ -1,14 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>View Livestream</title>
 </head>
+
 <body>
     <h1>Livestream</h1>
     <video id="localVideo" autoplay controls></video>
-    <video id="remoteVideo" autoplay></video>
+    <div>Local stream resolution: <span id="local-stream-resolution"></span></div>
+    <video id="remoteVideo" autoplay controls></video>
+    <div>Remote stream resolution: <span id="remote-stream-resolution"></span></div>
     <button onclick="startCall()">Start Call</button>
     <button onclick="endCall()">End Call</button>
 
@@ -57,6 +61,11 @@
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
                 socket.emit('offer', { roomId, sdp: offer.sdp });
+
+                // Get local stream resolution in pixels
+                const [videoTrack] = localStream.getVideoTracks();
+                const { height, width } = videoTrack.getSettings();
+                document.getElementById('local-stream-resolution').innerText = `${width}x${height}`;
             } catch (error) {
                 console.error('Error starting call:', error);
             }
@@ -75,6 +84,13 @@
                 remoteStream = event.streams[0];
                 remoteVideo.srcObject = remoteStream;
                 remoteVideo.muted = true;
+
+                // Get remote stream resolution in pixels
+                remoteVideo.onloadedmetadata = () => {
+                    const [videoTrack] = remoteStream.getVideoTracks();
+                    const { height, width } = videoTrack.getSettings();
+                    document.getElementById('remote-stream-resolution').innerText = `${width}x${height}`;
+                };
             };
 
             return pc;
@@ -97,4 +113,5 @@
         }
     </script>
 </body>
+
 </html>

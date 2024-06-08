@@ -37,10 +37,10 @@ io.on('connection', (socket) => {
         console.log("Owner connected");
     });
 
-    socket.on('join', (roomId) => {
-        socket.join(roomId);
-        socket.to(roomId).emit('join');
-        console.log(`Client ${socket.id} joined room ${roomId}`);
+    socket.on('join', (data) => {
+        socket.join(data.roomId);
+        socket.to(data.roomId).emit('offer', data.sdp);
+        console.log(`Client ${socket.id} joined room ${data.roomId}`);
     });
 
     socket.on('offer', (data) => {

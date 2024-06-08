@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Livestream viewer</title>
 </head>
+
 <body>
     <section>
         <video id="remote-video"></video>
@@ -15,20 +17,29 @@
         const socket = io('http://localhost:8080');
         const roomId = window.location.pathname.split('/').pop();
         const remoteVideo = document.getElementById('remote-video');
-        let pc = new RTCPeerConnection();
+        const pc = new RTCPeerConnection();
+
+        remoteVideo.onloadedmetadata = () => {
+            remoteVideo.play();
+        };
 
         pc.onicecandidate = event => {
+            console.log("candidate send");
             if (event.candidate) {
                 socket.emit('candidate', { roomId, candidate: event.candidate });
             }
         };
 
         pc.ontrack = event => {
-            let remoteStream = event.streams[0];
-            remoteVideo.srcObject = remoteStream;
+            remoteVideo.srcObject = event.streams[0];
         };
 
-        socket.emit('join', roomId);
+
+        (async function () {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.emit('join', { roomId, sdp: offer.sdp });
+        })();
 
         socket.on('offer', async (sdp) => {
             await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
@@ -42,19 +53,14 @@
         });
 
         socket.on('candidate', async (candidate) => {
+            console.log("candidate received");
             try {
                 await pc.addIceCandidate(new RTCIceCandidate(candidate));
             } catch (e) {
                 console.error('Error adding received ice candidate', e);
             }
         });
-
-        (async function () {
-            let offer = await pc.createOffer();
-            await pc.setRemoteDescription(offer);
-            // await pc.setLocalDescription(offer);
-            socket.emit('offer', { roomId, sdp: offer.sdp });
-        })();
     </script>
 </body>
+
 </html>

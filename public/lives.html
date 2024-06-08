@@ -25,11 +25,10 @@
 <body>
     <h1>Livestream</h1>
     <section id="lives-container">
-        <video id="lives-video"></video>
+        <video id="lives-video" autoplay playsinline></video>
         <button id="btn-start-lives">Start</button>
         <button id="btn-end-lives">End</button>
     </section>
-
 
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
@@ -40,27 +39,31 @@
         let stream;
         const roomId = window.location.pathname.split('/').pop();
         const pc = new RTCPeerConnection();
+
         pc.onicecandidate = event => {
+            console.log("candidate send");
             if (event.candidate) {
                 socket.emit('candidate', { roomId, candidate: event.candidate });
             }
         };
 
-        socket.on('join', async () => {
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            socket.emit('offer', { roomId, sdp: offer.sdp });
-        });
-
         socket.on('offer', async (sdp) => {
             await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
+
             socket.emit('answer', { roomId, sdp: answer.sdp });
+        });
+
+        socket.on('answer', async (sdp) => {
+            await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp }));
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
         });
 
         socket.on('candidate', async (candidate) => {
             try {
+                console.log("candidate received");
                 await pc.addIceCandidate(new RTCIceCandidate(candidate));
             } catch (e) {
                 console.error('Error adding received ice candidate', e);
@@ -74,13 +77,12 @@
                 livesVideo.play();
             };
             stream.getTracks().forEach(track => pc.addTrack(track, stream));
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
             socket.emit('start-lives', { role: 'owner', roomId });
         });
 
         btnEndLives.addEventListener("click", async function () {
             stream.getTracks().forEach(track => track.stop());
+            pc.close();
         });
     </script>
 </body>

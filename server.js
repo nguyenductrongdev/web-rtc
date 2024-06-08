@@ -20,12 +20,22 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+app.get('/lives/:id', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'lives.html'));
+});
+
 app.get('/view/:id', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'view.html'));
 });
 
 io.on('connection', (socket) => {
     console.log('New client connected:', socket.id);
+
+    socket.on('start-lives', ({ role, roomId }) => {
+        socket.data = { role, roomId };
+        socket.join(roomId);
+        console.log("Owner connected");
+    });
 
     socket.on('join', (roomId) => {
         socket.join(roomId);
@@ -45,7 +55,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        console.log('Client disconnected:', socket.id);
+        console.log('Client disconnected:', socket.data);
     });
 });
 

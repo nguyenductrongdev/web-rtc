@@ -1,117 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View Livestream</title>
+    <title>Livestream viewer</title>
 </head>
-
 <body>
-    <h1>Livestream</h1>
-    <video id="localVideo" autoplay controls></video>
-    <div>Local stream resolution: <span id="local-stream-resolution"></span></div>
-    <video id="remoteVideo" autoplay controls></video>
-    <div>Remote stream resolution: <span id="remote-stream-resolution"></span></div>
-    <button onclick="startCall()">Start Call</button>
-    <button onclick="endCall()">End Call</button>
+    <section>
+        <video id="remote-video"></video>
+    </section>
 
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
-        const localVideo = document.getElementById('localVideo');
-        const remoteVideo = document.getElementById('remoteVideo');
         const socket = io('http://localhost:8080');
-
-        let localStream;
-        let remoteStream;
-        let peerConnection;
         const roomId = window.location.pathname.split('/').pop();
+        const remoteVideo = document.getElementById('remote-video');
+        let pc = new RTCPeerConnection();
+
+        pc.onicecandidate = event => {
+            console.log("abc");
+            if (event.candidate) {
+                socket.emit('candidate', { roomId, candidate: event.candidate });
+            }
+        };
+
+        pc.ontrack = event => {
+            let remoteStream = event.streams[0];
+            remoteVideo.srcObject = remoteStream;
+            remoteVideo.muted = true;
+        };
 
         socket.emit('join', roomId);
 
-        socket.on('offer', async (sdp) => {
-            if (!peerConnection) createPeerConnection();
-            await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
-            socket.emit('answer', { roomId, sdp: answer.sdp });
-        });
-
         socket.on('answer', async (sdp) => {
-            await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp }));
+            await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp }));
         });
 
-        socket.on('candidate', async (candidate) => {
-            try {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-            } catch (e) {
-                console.error('Error adding received ice candidate', e);
-            }
-        });
-
-        async function startCall() {
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                localVideo.srcObject = localStream;
-                localVideo.muted = true;
-
-                peerConnection = createPeerConnection();
-                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-                socket.emit('offer', { roomId, sdp: offer.sdp });
-
-                // Get local stream resolution in pixels
-                const [videoTrack] = localStream.getVideoTracks();
-                const { height, width } = videoTrack.getSettings();
-                document.getElementById('local-stream-resolution').innerText = `${width}x${height}`;
-            } catch (error) {
-                console.error('Error starting call:', error);
-            }
-        }
-
-        function createPeerConnection() {
-            const pc = new RTCPeerConnection();
-
-            pc.onicecandidate = event => {
-                if (event.candidate) {
-                    socket.emit('candidate', { roomId, candidate: event.candidate });
-                }
-            };
-
-            pc.ontrack = event => {
-                remoteStream = event.streams[0];
-                remoteVideo.srcObject = remoteStream;
-                remoteVideo.muted = true;
-
-                // Get remote stream resolution in pixels
-                remoteVideo.onloadedmetadata = () => {
-                    const [videoTrack] = remoteStream.getVideoTracks();
-                    const { height, width } = videoTrack.getSettings();
-                    document.getElementById('remote-stream-resolution').innerText = `${width}x${height}`;
-                };
-            };
-
-            return pc;
-        }
-
-        function endCall() {
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-            }
-            if (remoteStream) {
-                remoteStream.getTracks().forEach(track => track.stop());
-            }
-            if (peerConnection) {
-                peerConnection.close();
-                peerConnection = null;
-            }
-
-            localVideo.srcObject = null;
-            remoteVideo.srcObject = null;
-        }
+        (async function () {
+            let offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.emit('offer', { roomId, offer });
+        })();
     </script>
 </body>
-
 </html>

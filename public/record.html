@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Livestream</title>
+    <style>
+        #lives-container {
+            width: 50vw;
+        }
+
+        #lives-video {
+            background: url('https://marketplace.canva.com/EAEyZPDsh-4/1/0/1600w/canva-dark-purple-futuristic-stream-starting-soon-twitch-background-9h5ocxbndVU.jpg') no-repeat center;
+            width: 100%;
+        }
+
+        #btn-start-lives, #btn-start-recording, #btn-stop-recording {
+            display: block;
+            margin: 10px auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Livestream</h1>
+    <section id="lives-container">
+        <video id="lives-video" autoplay playsinline></video>
+        <button id="btn-start-lives">Start Live</button>
+        <button id="btn-end-lives">End Live</button>
+        <button id="btn-start-recording">Start Recording</button>
+        <button id="btn-stop-recording">Stop Recording</button>
+    </section>
+
+    <script>
+        const livesVideo = document.getElementById('lives-video');
+        const btnStartLives = document.getElementById('btn-start-lives');
+        const btnEndLives = document.getElementById('btn-end-lives');
+        const btnStartRecording = document.getElementById('btn-start-recording');
+        const btnStopRecording = document.getElementById('btn-stop-recording');
+        let stream;
+        let mediaRecorder;
+        let recordedChunks = [];
+
+        btnStartLives.addEventListener("click", async function () {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            livesVideo.srcObject = stream;
+            livesVideo.onloadedmetadata = () => {
+                livesVideo.play();
+            };
+        });
+
+        btnEndLives.addEventListener("click", function () {
+            stream.getTracks().forEach(track => track.stop());
+        });
+
+        btnStartRecording.addEventListener('click', () => {
+            recordedChunks = [];
+            const options = { mimeType: 'video/webm; codecs=vp9' };
+            mediaRecorder = new MediaRecorder(livesVideo.srcObject, options);
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, {
+                    type: 'video/mp4'
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                document.body.appendChild(a);
+                a.style = 'display: none';
+                a.href = url;
+                a.download = 'livestream_recording.webm';
+                a.click();
+                window.URL.revokeObjectURL(url);
+            };
+
+            mediaRecorder.start();
+        });
+
+        btnStopRecording.addEventListener('click', () => {
+            mediaRecorder.stop();
+        });
+    </script>
+</body>
+
+</html>

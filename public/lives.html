@@ -38,6 +38,7 @@
         const btnStartLives = document.getElementById('btn-start-lives');
         const btnEndLives = document.getElementById('btn-end-lives');
         let stream;
+        const roomId = window.location.pathname.split('/').pop();
         const pc = new RTCPeerConnection();
         pc.onicecandidate = event => {
             if (event.candidate) {
@@ -45,7 +46,11 @@
             }
         };
 
-        const roomId = window.location.pathname.split('/').pop();
+        socket.on('join', async () => {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.emit('offer', { roomId, sdp: offer.sdp });
+        });
 
         socket.on('offer', async (sdp) => {
             await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
@@ -55,9 +60,8 @@
         });
 
         socket.on('candidate', async (candidate) => {
-            console.log("ice");
             try {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                await pc.addIceCandidate(new RTCIceCandidate(candidate));
             } catch (e) {
                 console.error('Error adding received ice candidate', e);
             }
@@ -68,9 +72,11 @@
             livesVideo.srcObject = stream;
             livesVideo.onloadedmetadata = () => {
                 livesVideo.play();
-            }
-            socket.emit('start-lives', { role: 'owner', roomId });
+            };
             stream.getTracks().forEach(track => pc.addTrack(track, stream));
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.emit('start-lives', { role: 'owner', roomId });
         });
 
         btnEndLives.addEventListener("click", async function () {

@@ -39,7 +39,6 @@
 
         btnApproval.addEventListener("click", async function () {
             const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
             socket.emit('join', { roomId, sdp: offer.sdp });
             this.remove();
         });
@@ -49,10 +48,6 @@
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
             socket.emit('answer', { roomId, sdp: answer.sdp });
-        });
-
-        socket.on('answer', async (sdp) => {
-            await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp }));
         });
 
         socket.on('candidate', async (candidate) => {

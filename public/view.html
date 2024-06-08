@@ -10,36 +10,39 @@
 <body>
     <section>
         <video id="remote-video"></video>
+        <button id="btn-approval">See lives</button>
     </section>
 
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
         const socket = io('http://localhost:8080');
-        const roomId = window.location.pathname.split('/').pop();
         const remoteVideo = document.getElementById('remote-video');
+        const btnApproval = document.getElementById('btn-approval');
+        const roomId = window.location.pathname.split('/').pop();
         const pc = new RTCPeerConnection();
 
         remoteVideo.onloadedmetadata = () => {
             remoteVideo.play();
-        };
+        }
 
         pc.onicecandidate = event => {
             console.log("candidate send");
             if (event.candidate) {
                 socket.emit('candidate', { roomId, candidate: event.candidate });
             }
-        };
+        }
 
         pc.ontrack = event => {
+            console.log("abc");
             remoteVideo.srcObject = event.streams[0];
         };
 
-
-        (async function () {
+        btnApproval.addEventListener("click", async function () {
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
             socket.emit('join', { roomId, sdp: offer.sdp });
-        })();
+            this.remove();
+        });
 
         socket.on('offer', async (sdp) => {
             await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));

@@ -39,7 +39,7 @@ io.on('connection', (socket) => {
 
     socket.on('join', (data) => {
         socket.join(data.roomId);
-        socket.to(data.roomId).emit('offer', data.sdp);
+        socket.to(data.roomId).emit('join', "");
         console.log(`Client ${socket.id} joined room ${data.roomId}`);
     });
 

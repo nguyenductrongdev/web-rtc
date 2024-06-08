@@ -48,28 +48,32 @@
         };
 
         socket.on('join', async () => {
+            console.log("received:join");
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
+            console.log("send:offer");
             socket.emit('offer', { roomId, sdp: offer.sdp });
         });
 
         socket.on('offer', async (sdp) => {
+            console.log("received:offer");
             await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
-
+            console.log("send:answer");
             socket.emit('answer', { roomId, sdp: answer.sdp });
         });
 
         socket.on('answer', async (sdp) => {
+            console.log("received:answer");
             await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp }));
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
         });
 
         socket.on('candidate', async (candidate) => {
+            console.log("received:candidate");
             try {
-                console.log("candidate received");
                 await pc.addIceCandidate(new RTCIceCandidate(candidate));
             } catch (e) {
                 console.error('Error adding received ice candidate', e);

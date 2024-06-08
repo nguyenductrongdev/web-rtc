@@ -47,6 +47,12 @@
             }
         };
 
+        socket.on('join', async () => {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.emit('offer', { roomId, sdp: offer.sdp });
+        });
+
         socket.on('offer', async (sdp) => {
             await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
             const answer = await pc.createAnswer();

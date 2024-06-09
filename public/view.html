@@ -33,13 +33,13 @@
         }
 
         pc.ontrack = event => {
-            console.log("abc");
+            console.log("trigger:ontrack");
             remoteVideo.srcObject = event.streams[0];
         };
 
         btnApproval.addEventListener("click", async function () {
             const offer = await pc.createOffer();
-            socket.emit('join', { roomId, sdp: offer.sdp });
+            socket.emit('join', { roomId });
             socket.emit('offer', { roomId, sdp: offer.sdp });
             this.remove();
         });

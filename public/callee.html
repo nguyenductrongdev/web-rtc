@@ -4,7 +4,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Livestream viewer</title>
+    <title>Livestream</title>
+    <style>
+        #lives-container {
+            width: 50vw;
+        }
+
+        #lives-video {
+            background: url('https://marketplace.canva.com/EAEyZPDsh-4/1/0/1600w/canva-dark-purple-futuristic-stream-starting-soon-twitch-background-9h5ocxbndVU.jpg') no-repeat center;
+            width: 100%;
+        }
+
+        #btn-start-lives {
+            display: block;
+            margin-left: auto;
+        }
+    </style>
 </head>
 
 <body>
@@ -27,6 +42,16 @@
 
         socket.on('offer', async (sdp) => {
             console.log("received:offer");
+
+            pc = new RTCPeerConnection();
+            pc.onicecandidate = event => {
+                console.log("send:candidate");
+                if (event.candidate) {
+                    socket.emit('candidate', { roomId, candidate: event.candidate });
+                }
+            }
+            stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
             await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
@@ -44,21 +69,11 @@
         });
 
         btnStartLives.addEventListener("click", async function () {
-            pc = new RTCPeerConnection();
-            pc.onicecandidate = event => {
-                console.log("send:candidate");
-                if (event.candidate) {
-                    socket.emit('candidate', { roomId, candidate: event.candidate });
-                }
-            }
-
             stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
             livesVideo.srcObject = stream;
             livesVideo.onloadedmetadata = () => {
                 livesVideo.play();
             };
-            stream.getTracks().forEach(track => pc.addTrack(track, stream));
-            console.log("done:addTrack");
             socket.emit('start-lives', { role: 'owner', roomId });
         });
 

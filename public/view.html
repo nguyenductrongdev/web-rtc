@@ -44,7 +44,7 @@
             this.remove();
         });
 
-        socket.on('offer', async (sdp) => {
+        socket.on('answer', async (sdp) => {
             await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);

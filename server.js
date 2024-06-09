@@ -21,11 +21,11 @@ app.get('/', (req, res) => {
 });
 
 app.get('/lives/:id', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'lives.html'));
+    res.sendFile(path.join(__dirname, 'public', 'caller.html'));
 });
 
 app.get('/view/:id', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'view.html'));
+    res.sendFile(path.join(__dirname, 'public', 'callee.html'));
 });
 
 io.on('connection', (socket) => {

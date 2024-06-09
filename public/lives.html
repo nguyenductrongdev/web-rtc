@@ -47,7 +47,7 @@
             }
         };
 
-        socket.on('join', async () => {
+        socket.on('offer', async () => {
             console.log("received:join");
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);

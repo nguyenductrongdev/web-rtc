@@ -40,6 +40,7 @@
         btnApproval.addEventListener("click", async function () {
             const offer = await pc.createOffer();
             socket.emit('join', { roomId, sdp: offer.sdp });
+            socket.emit('offer', { roomId, sdp: offer.sdp });
             this.remove();
         });
 

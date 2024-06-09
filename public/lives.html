@@ -55,13 +55,6 @@
             socket.emit('offer', { roomId, sdp: offer.sdp });
         });
 
-        socket.on('offer', async (sdp) => {
-            console.log("received:offer");
-            const answer = await pc.createAnswer();
-            console.log("send:answer");
-            socket.emit('answer', { roomId, sdp: answer.sdp });
-        });
-
         socket.on('answer', async (sdp) => {
             console.log("received:answer");
             await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp }));

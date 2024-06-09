@@ -44,15 +44,15 @@ io.on('connection', (socket) => {
     });
 
     socket.on('offer', (data) => {
-        socket.to(data.roomId).emit('offer', data.sdp);
+        socket.to(data.peerId).emit('offer', data.sdp);
     });
 
     socket.on('answer', (data) => {
-        socket.to(data.roomId).emit('answer', data.sdp);
+        socket.to(data.roomId).emit('answer', { peerId: socket.id, sdp: data.sdp });
     });
 
     socket.on('candidate', (data) => {
-        socket.to(data.roomId).emit('candidate', data.candidate);
+        socket.to(data.roomId).emit('candidate', { peerId: socket.id, candidate: data.candidate });
     });
 
     socket.on('disconnect', () => {

@@ -38,52 +38,53 @@
         const btnEndLives = document.getElementById('btn-end-lives');
         let stream;
         const roomId = window.location.pathname.split('/').pop();
-        let pc;
+        let pcs = {};
 
-        socket.on('join', async () => {
+        socket.on('join', async (peerId) => {
             console.log("received:join");
+
+            let pc = new RTCPeerConnection();
+            pc.onicecandidate = event => {
+                console.log("send:candidate");
+                if (event.candidate) {
+                    socket.emit('candidate', { roomId, candidate: event.candidate });
+                }
+            };
+            stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
             console.log("send:offer");
-            socket.emit('offer', { roomId, sdp: offer.sdp });
+            socket.emit('offer', { peerId, sdp: offer.sdp });
+            pcs[peerId] = pc;
         });
 
-        socket.on('answer', async (sdp) => {
+        socket.on('answer', async ({ peerId, sdp }) => {
             console.log("received:answer");
-            await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp }));
+            await pcs[peerId].setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp }));
         });
 
-        socket.on('candidate', async (candidate) => {
+        socket.on('candidate', async ({ peerId, candidate }) => {
             console.log("received:candidate");
             try {
-                await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                await pcs[peerId].addIceCandidate(new RTCIceCandidate(candidate));
             } catch (e) {
                 console.error('Error adding received ice candidate', e);
             }
         });
 
         btnStartLives.addEventListener("click", async function () {
-            pc = new RTCPeerConnection();
-
-            pc.onicecandidate = event => {
-                console.log("candidate send");
-                if (event.candidate) {
-                    socket.emit('candidate', { roomId, candidate: event.candidate });
-                }
-            };
-
             stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
             livesVideo.srcObject = stream;
             livesVideo.onloadedmetadata = () => {
                 livesVideo.play();
             };
-            stream.getTracks().forEach(track => pc.addTrack(track, stream));
             socket.emit('start-lives', { role: 'owner', roomId });
         });
 
         btnEndLives.addEventListener("click", async function () {
             stream.getTracks().forEach(track => track.stop());
-            pc.close();
+            for (let peerId in peerIds) pcs[peerId].close();
         });
     </script>
 </body>

@@ -26,7 +26,7 @@
         }
 
         pc.onicecandidate = event => {
-            console.log("candidate send");
+            console.log("send:candidate");
             if (event.candidate) {
                 socket.emit('candidate', { roomId, candidate: event.candidate });
             }
@@ -50,8 +50,8 @@
             socket.emit('answer', { roomId, sdp: answer.sdp });
         });
 
-        socket.on('candidate', async (candidate) => {
-            console.log("candidate received");
+        socket.on('candidate', async ({peerId, candidate}) => {
+            console.log("received:candidate");
             try {
                 await pc.addIceCandidate(new RTCIceCandidate(candidate));
             } catch (e) {

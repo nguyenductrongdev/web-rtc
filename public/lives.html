@@ -40,12 +40,12 @@
         const roomId = window.location.pathname.split('/').pop();
         let pc;
 
-        socket.on('offer', async () => {
-            console.log("received:offer");
+        socket.on('join', async () => {
+            console.log("received:join");
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
-            console.log("send:answer");
-            socket.emit('answer', { roomId, sdp: offer.sdp });
+            console.log("send:offer");
+            socket.emit('offer', { roomId, sdp: offer.sdp });
         });
 
         socket.on('answer', async (sdp) => {

@@ -48,6 +48,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('answer', (data) => {
+        console.log("transfer:answer");
         socket.to(data.roomId).emit('answer', data.sdp);
     });
 

@@ -8,55 +8,62 @@
 </head>
 
 <body>
-    <section>
-        <video id="remote-video"></video>
-        <button id="btn-approval">See lives</button>
+    <h1>Livestream</h1>
+    <section id="lives-container">
+        <video id="lives-video" autoplay playsinline></video>
+        <button id="btn-start-lives">Start</button>
+        <button id="btn-end-lives">End</button>
     </section>
 
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
         const socket = io('http://localhost:8080');
-        const remoteVideo = document.getElementById('remote-video');
-        const btnApproval = document.getElementById('btn-approval');
+        const livesVideo = document.getElementById('lives-video');
+        const btnStartLives = document.getElementById('btn-start-lives');
+        const btnEndLives = document.getElementById('btn-end-lives');
         const roomId = window.location.pathname.split('/').pop();
-        const pc = new RTCPeerConnection();
-
-        remoteVideo.onloadedmetadata = () => {
-            remoteVideo.play();
-        }
+        let stream;
+        pc = new RTCPeerConnection();
 
         pc.onicecandidate = event => {
-            console.log("candidate send");
+            console.log("send:candidate");
             if (event.candidate) {
                 socket.emit('candidate', { roomId, candidate: event.candidate });
             }
-        }
-
-        pc.ontrack = event => {
-            console.log("trigger:ontrack");
-            remoteVideo.srcObject = event.streams[0];
         };
 
-        btnApproval.addEventListener("click", async function () {
-            const offer = await pc.createOffer();
-            socket.emit('join', { roomId });
-            this.remove();
-        });
-
         socket.on('offer', async (sdp) => {
+            console.log("received:offer");
             await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
+            console.log("send:answer");
             socket.emit('answer', { roomId, sdp: answer.sdp });
         });
 
         socket.on('candidate', async (candidate) => {
-            console.log("candidate received");
+            console.log("received:candidate");
             try {
                 await pc.addIceCandidate(new RTCIceCandidate(candidate));
             } catch (e) {
                 console.error('Error adding received ice candidate', e);
             }
+        });
+
+        btnStartLives.addEventListener("click", async function () {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            livesVideo.srcObject = stream;
+            livesVideo.onloadedmetadata = () => {
+                livesVideo.play();
+            };
+            stream.getTracks().forEach(track => pc.addTrack(track, stream));
+            console.log("done:addTrack");
+            socket.emit('start-lives', { role: 'owner', roomId });
+        });
+
+        btnEndLives.addEventListener("click", async function () {
+            stream.getTracks().forEach(track => track.stop());
+            pc.close();
         });
     </script>
 </body>

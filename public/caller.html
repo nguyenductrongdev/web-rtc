@@ -23,29 +23,43 @@
 </head>
 
 <body>
-    <h1>Livestream</h1>
-    <section id="lives-container">
-        <video id="lives-video" autoplay playsinline></video>
-        <button id="btn-start-lives">Start</button>
-        <button id="btn-end-lives">End</button>
+    <section>
+        <video id="remote-video"></video>
+        <button id="btn-approval">See lives</button>
     </section>
 
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
         const socket = io('http://localhost:8080');
-        const livesVideo = document.getElementById('lives-video');
-        const btnStartLives = document.getElementById('btn-start-lives');
-        const btnEndLives = document.getElementById('btn-end-lives');
-        let stream;
+        const remoteVideo = document.getElementById('remote-video');
+        const btnApproval = document.getElementById('btn-approval');
         const roomId = window.location.pathname.split('/').pop();
-        let pc;
+        let pc = new RTCPeerConnection();
 
-        socket.on('join', async () => {
-            console.log("received:join");
+        pc.onicecandidate = event => {
+            console.log("send:candidate");
+            if (event.candidate) {
+                socket.emit('candidate', { roomId, candidate: event.candidate });
+            }
+        }
+
+        pc.ontrack = event => {
+            console.log("trigger:ontrack");
+            remoteVideo.srcObject = event.streams[0];
+        }
+
+        remoteVideo.onloadedmetadata = () => {
+            remoteVideo.play();
+        }
+
+        socket.emit('join', {roomId});
+
+        btnApproval.addEventListener("click", async function () {
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
             console.log("send:offer");
             socket.emit('offer', { roomId, sdp: offer.sdp });
+            this.remove();
         });
 
         socket.on('answer', async (sdp) => {
@@ -60,30 +74,6 @@
             } catch (e) {
                 console.error('Error adding received ice candidate', e);
             }
-        });
-
-        btnStartLives.addEventListener("click", async function () {
-            pc = new RTCPeerConnection();
-
-            pc.onicecandidate = event => {
-                console.log("candidate send");
-                if (event.candidate) {
-                    socket.emit('candidate', { roomId, candidate: event.candidate });
-                }
-            };
-
-            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-            livesVideo.srcObject = stream;
-            livesVideo.onloadedmetadata = () => {
-                livesVideo.play();
-            };
-            stream.getTracks().forEach(track => pc.addTrack(track, stream));
-            socket.emit('start-lives', { role: 'owner', roomId });
-        });
-
-        btnEndLives.addEventListener("click", async function () {
-            stream.getTracks().forEach(track => track.stop());
-            pc.close();
         });
     </script>
 </body>

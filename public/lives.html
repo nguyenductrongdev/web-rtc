@@ -48,10 +48,10 @@
         };
 
         socket.on('offer', async () => {
-            console.log("received:join");
+            console.log("received:offer");
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
-            console.log("send:offer");
+            console.log("send:answer");
             socket.emit('answer', { roomId, sdp: offer.sdp });
         });
 

@@ -23,14 +23,7 @@
         const btnEndLives = document.getElementById('btn-end-lives');
         const roomId = window.location.pathname.split('/').pop();
         let stream;
-        pc = new RTCPeerConnection();
-
-        pc.onicecandidate = event => {
-            console.log("send:candidate");
-            if (event.candidate) {
-                socket.emit('candidate', { roomId, candidate: event.candidate });
-            }
-        };
+        let pc;
 
         socket.on('offer', async (sdp) => {
             console.log("received:offer");
@@ -51,6 +44,14 @@
         });
 
         btnStartLives.addEventListener("click", async function () {
+            pc = new RTCPeerConnection();
+            pc.onicecandidate = event => {
+                console.log("send:candidate");
+                if (event.candidate) {
+                    socket.emit('candidate', { roomId, candidate: event.candidate });
+                }
+            }
+
             stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
             livesVideo.srcObject = stream;
             livesVideo.onloadedmetadata = () => {

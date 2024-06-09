@@ -52,7 +52,7 @@
             remoteVideo.play();
         }
 
-        socket.emit('join', {roomId});
+        socket.emit('join', { roomId });
 
         btnApproval.addEventListener("click", async function () {
             const offer = await pc.createOffer();

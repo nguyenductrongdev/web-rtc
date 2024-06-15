@@ -40,6 +40,9 @@
         socket.emit('join', { roomId });
 
         btnApproval.addEventListener("click", async function () {
+            let stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
             console.log("send:offer");
